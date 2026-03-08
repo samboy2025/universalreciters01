@@ -359,21 +359,44 @@ const Recite = () => {
               </Select>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Arabic Text Display */}
-              <div className="p-8 bg-muted/50 rounded-lg text-center">
-                {selectedVideo ? (
-                  <>
-                    <p className="font-arabic text-3xl md:text-4xl leading-loose text-foreground" dir="rtl">
-                      {selectedVideo.arabic_text}
-                    </p>
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      {selectedVideo.title}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">Select a surah to practice</p>
-                )}
-              </div>
+              {/* Arabic Text Display with Scroll */}
+              <ScrollArea className="max-h-[350px] rounded-lg border border-border bg-muted/30">
+                <div className="p-6 md:p-8" dir="rtl">
+                  {selectedVideo ? (
+                    <div className="space-y-4">
+                      {/* Bismillah Header */}
+                      {selectedVideo.arabic_text.includes("بِسْمِ") && (
+                        <div className="text-center pb-4 mb-4 border-b border-border/50">
+                          <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
+                            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Main Arabic Text */}
+                      <div className="font-arabic text-2xl md:text-3xl lg:text-4xl leading-[2.5] text-foreground text-center">
+                        {selectedVideo.arabic_text.split(/\s+/).map((word, idx) => (
+                          <span key={idx} className="inline-block mx-1 my-1 hover:text-primary transition-colors">
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      {/* Title */}
+                      <div className="text-center pt-4 mt-4 border-t border-border/50" dir="ltr">
+                        <p className="text-sm text-muted-foreground">{selectedVideo.title}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">
+                          {selectedVideo.arabic_text.split(/\s+/).length} words
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center min-h-[200px]">
+                      <p className="text-muted-foreground text-center">Select a surah to practice</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
 
               {/* Transcribed Text */}
               {transcribedText && (
