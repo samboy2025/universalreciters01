@@ -19,14 +19,14 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-[calc(100vh-8rem)] grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-auto">
         {/* Part 1: Video Section */}
-        <div className="lg:row-span-1">
+        <div className="min-h-[400px]">
           <VideoPlayer onSelectVideo={setSelectedVideo} />
         </div>
 
         {/* Part 2: Recitation & Checking Section */}
-        <div className="lg:row-span-1">
+        <div className="min-h-[400px]">
           <RecitationChecker
             arabicText={selectedVideo?.arabicText || ""}
             onComplete={handleRecitationComplete}
@@ -34,12 +34,12 @@ const Dashboard = () => {
         </div>
 
         {/* Part 3: Selfie Mirror */}
-        <div className="lg:row-span-1">
+        <div className="min-h-[300px]">
           <SelfieMirror />
         </div>
 
         {/* Part 4: Rankings */}
-        <div className="lg:row-span-1">
+        <div className="min-h-[300px]">
           <RankingWidget />
         </div>
       </div>
