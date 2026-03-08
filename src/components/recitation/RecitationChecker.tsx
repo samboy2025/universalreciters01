@@ -1,13 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, MicOff, Play, Pause, RotateCcw, CheckCircle, XCircle, Volume2 } from "lucide-react";
+import { Mic, MicOff, RotateCcw, CheckCircle, XCircle, Volume2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface RecitationWord {
   text: string;
-  status: "pending" | "correct" | "incorrect" | "current";
+  status: "pending" | "correct" | "incorrect" | "partial" | "current";
   attempts: number;
 }
 
@@ -17,22 +18,64 @@ interface RecitationCheckerProps {
   onRecordingComplete?: (blob: Blob) => void;
 }
 
-// Sample Arabic text for demo - Surah Al-Fatiha
-const sampleWords: RecitationWord[] = [
-  { text: "بِسْمِ", status: "pending", attempts: 0 },
-  { text: "اللَّهِ", status: "pending", attempts: 0 },
-  { text: "الرَّحْمَٰنِ", status: "pending", attempts: 0 },
-  { text: "الرَّحِيمِ", status: "pending", attempts: 0 },
-  { text: "الْحَمْدُ", status: "pending", attempts: 0 },
-  { text: "لِلَّهِ", status: "pending", attempts: 0 },
-  { text: "رَبِّ", status: "pending", attempts: 0 },
-  { text: "الْعَالَمِينَ", status: "pending", attempts: 0 },
-];
+// Parse Arabic text into words with proper formatting
+const parseArabicText = (text: string): RecitationWord[] => {
+  if (!text) return [];
+  
+  // Split by spaces while preserving Arabic punctuation
+  const words = text.split(/\s+/).filter(word => word.trim());
+  
+  return words.map(word => ({
+    text: word,
+    status: "pending" as const,
+    attempts: 0,
+  }));
+};
+
+// Format Arabic text into verses (split by ۝ or numbers)
+const formatVerses = (text: string): string[] => {
+  if (!text) return [];
+  
+  // Common verse separators in Quran text
+  const verseSeparators = /([۝﴾﴿]|\(\d+\)|\d+[\.\-])/g;
+  
+  // Split by verse markers
+  const parts = text.split(verseSeparators).filter(part => part.trim());
+  
+  // If no separators found, split by rough word count for readability
+  if (parts.length <= 1) {
+    const words = text.split(/\s+/);
+    const verses: string[] = [];
+    for (let i = 0; i < words.length; i += 8) {
+      verses.push(words.slice(i, i + 8).join(' '));
+    }
+    return verses;
+  }
+  
+  // Recombine verse markers with their text
+  const verses: string[] = [];
+  let currentVerse = '';
+  
+  for (const part of parts) {
+    if (part.match(verseSeparators)) {
+      currentVerse += ' ' + part;
+      verses.push(currentVerse.trim());
+      currentVerse = '';
+    } else {
+      currentVerse = part;
+    }
+  }
+  
+  if (currentVerse.trim()) {
+    verses.push(currentVerse.trim());
+  }
+  
+  return verses;
+};
 
 const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: RecitationCheckerProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [words, setWords] = useState<RecitationWord[]>(sampleWords);
+  const [words, setWords] = useState<RecitationWord[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [score, setScore] = useState(100);
   const [mistakes, setMistakes] = useState(0);
@@ -40,6 +83,27 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
   const { toast } = useToast();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Parse Arabic text when it changes
+  useEffect(() => {
+    if (arabicText) {
+      setWords(parseArabicText(arabicText));
+      resetRecitation();
+    }
+  }, [arabicText]);
+
+  // Auto-scroll to current word
+  useEffect(() => {
+    if (currentWordIndex > 0 && scrollRef.current) {
+      const currentElement = scrollRef.current.querySelector(`[data-word-index="${currentWordIndex}"]`);
+      if (currentElement) {
+        currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentWordIndex]);
+
+  const verses = useMemo(() => formatVerses(arabicText), [arabicText]);
 
   const startRecording = async () => {
     try {
@@ -84,11 +148,15 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
     }
   };
 
-  // Simulate AI word checking (in production, this would use actual speech-to-text)
+  // Simulate AI word checking
   const simulateWordChecking = () => {
     let index = 0;
+    const wordList = words.length > 0 ? words : parseArabicText(arabicText);
+    
+    if (wordList.length === 0) return;
+
     const interval = setInterval(() => {
-      if (index >= words.length) {
+      if (index >= wordList.length) {
         clearInterval(interval);
         setIsComplete(true);
         stopRecording();
@@ -96,39 +164,74 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
         return;
       }
 
-      // Simulate word processing
       setWords(prev => {
         const newWords = [...prev];
-        if (index > 0) {
+        if (index > 0 && newWords[index - 1]) {
           // Random success/failure for demo (85% success rate)
-          const success = Math.random() > 0.15;
+          const random = Math.random();
+          let status: "correct" | "incorrect" | "partial" = "correct";
+          
+          if (random < 0.1) {
+            status = "incorrect";
+            setMistakes(m => m + 1);
+            setScore(s => Math.max(0, s - 8));
+          } else if (random < 0.2) {
+            status = "partial";
+            setScore(s => Math.max(0, s - 3));
+          }
+          
           newWords[index - 1] = {
             ...newWords[index - 1],
-            status: success ? "correct" : "incorrect",
+            status,
             attempts: newWords[index - 1].attempts + 1,
           };
-          
-          if (!success) {
-            setMistakes(m => m + 1);
-            setScore(s => Math.max(0, s - 5));
-          }
         }
-        newWords[index] = { ...newWords[index], status: "current" };
+        if (newWords[index]) {
+          newWords[index] = { ...newWords[index], status: "current" };
+        }
         return newWords;
       });
 
       setCurrentWordIndex(index);
       index++;
-    }, 1500);
+    }, 1200);
   };
 
   const resetRecitation = () => {
-    setWords(sampleWords);
+    setWords(parseArabicText(arabicText));
     setCurrentWordIndex(0);
     setScore(100);
     setMistakes(0);
     setIsComplete(false);
     setIsRecording(false);
+  };
+
+  const getWordStyle = (status: RecitationWord['status']) => {
+    switch (status) {
+      case "correct":
+        return "bg-success/20 text-success border-success/30";
+      case "incorrect":
+        return "bg-destructive/20 text-destructive border-destructive/30";
+      case "partial":
+        return "bg-warning/20 text-warning border-warning/30";
+      case "current":
+        return "bg-accent/40 text-accent-foreground border-accent ring-2 ring-accent animate-pulse";
+      default:
+        return "text-foreground border-transparent";
+    }
+  };
+
+  const getStatusIcon = (status: RecitationWord['status']) => {
+    switch (status) {
+      case "correct":
+        return <CheckCircle className="inline-block w-3 h-3 ml-1" />;
+      case "incorrect":
+        return <XCircle className="inline-block w-3 h-3 ml-1" />;
+      case "partial":
+        return <AlertCircle className="inline-block w-3 h-3 ml-1" />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -147,40 +250,69 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        {/* Arabic Text Display */}
-        <div className="flex-1 bg-muted rounded-lg p-4 mb-4 overflow-auto">
-          <div className="font-arabic text-2xl md:text-3xl leading-loose text-center flex flex-wrap justify-center gap-3">
-            {words.map((word, index) => (
-              <span
-                key={index}
-                className={cn(
-                  "px-2 py-1 rounded transition-all duration-300",
-                  word.status === "correct" && "bg-success/20 text-success",
-                  word.status === "incorrect" && "bg-destructive/20 text-destructive",
-                  word.status === "current" && "bg-accent/50 ring-2 ring-accent animate-pulse",
-                  word.status === "pending" && "text-foreground"
+      <CardContent className="flex-1 flex flex-col min-h-0">
+        {/* Arabic Text Display with Scroll */}
+        <ScrollArea className="flex-1 max-h-[300px] rounded-lg border border-border bg-muted/30">
+          <div ref={scrollRef} className="p-4 md:p-6">
+            {arabicText ? (
+              <div className="space-y-4" dir="rtl">
+                {/* Bismillah Header if present */}
+                {arabicText.includes("بِسْمِ") && (
+                  <div className="text-center pb-4 mb-4 border-b border-border/50">
+                    <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
+                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                    </span>
+                  </div>
                 )}
-              >
-                {word.text}
-                {word.status === "correct" && (
-                  <CheckCircle className="inline-block w-4 h-4 ml-1" />
+                
+                {/* Word-by-word display with status highlighting */}
+                <div className="font-arabic text-xl md:text-2xl lg:text-3xl leading-[2.5] text-center flex flex-wrap justify-center gap-2">
+                  {words.map((word, index) => (
+                    <span
+                      key={index}
+                      data-word-index={index}
+                      className={cn(
+                        "inline-flex items-center px-2 py-1 rounded-md border transition-all duration-300",
+                        getWordStyle(word.status)
+                      )}
+                    >
+                      {word.text}
+                      {getStatusIcon(word.status)}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Verse numbers display for context */}
+                {verses.length > 1 && (
+                  <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
+                    <p className="text-xs text-muted-foreground text-center mb-2" dir="ltr">
+                      Verses breakdown:
+                    </p>
+                    {verses.map((verse, idx) => (
+                      <p key={idx} className="font-arabic text-lg md:text-xl leading-[2] text-muted-foreground/80 text-center">
+                        <span className="text-primary/60 text-sm">({idx + 1})</span> {verse}
+                      </p>
+                    ))}
+                  </div>
                 )}
-                {word.status === "incorrect" && (
-                  <XCircle className="inline-block w-4 h-4 ml-1" />
-                )}
-              </span>
-            ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full min-h-[150px]">
+                <p className="text-muted-foreground text-center">
+                  Select a video to see the Quran text for recitation
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        </ScrollArea>
 
         {/* Score Display */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-success/10 rounded-lg p-3 text-center">
+        <div className="grid grid-cols-2 gap-4 my-4">
+          <div className="bg-success/10 rounded-lg p-3 text-center border border-success/20">
             <div className="text-2xl font-bold text-success">{score}</div>
             <div className="text-xs text-muted-foreground">Score</div>
           </div>
-          <div className="bg-destructive/10 rounded-lg p-3 text-center">
+          <div className="bg-destructive/10 rounded-lg p-3 text-center border border-destructive/20">
             <div className="text-2xl font-bold text-destructive">{mistakes}</div>
             <div className="text-xs text-muted-foreground">Mistakes</div>
           </div>
@@ -194,7 +326,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
                 onClick={isRecording ? stopRecording : startRecording}
                 className="flex-1"
                 variant={isRecording ? "destructive" : "default"}
-                disabled={isProcessing}
+                disabled={!arabicText}
               >
                 {isRecording ? (
                   <>
@@ -208,7 +340,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" disabled={!arabicText}>
                 <Volume2 className="w-4 h-4" />
               </Button>
             </>
@@ -221,7 +353,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
         </div>
 
         {isComplete && (
-          <div className="mt-4 p-4 bg-primary/10 rounded-lg text-center animate-fade-in">
+          <div className="mt-4 p-4 bg-primary/10 rounded-lg text-center animate-fade-in border border-primary/20">
             <h3 className="font-semibold text-foreground mb-1">
               Recitation Complete!
             </h3>
