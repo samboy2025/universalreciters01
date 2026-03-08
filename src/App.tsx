@@ -18,6 +18,7 @@ import Chat from "./pages/Chat";
 import Learn from "./pages/dashboard/Learn";
 import Recite from "./pages/dashboard/Recite";
 import Rankings from "./pages/dashboard/Rankings";
+import Settings from "./pages/dashboard/Settings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminVideos from "./pages/admin/AdminVideos";
 import AdminUsers from "./pages/admin/AdminUsers";
