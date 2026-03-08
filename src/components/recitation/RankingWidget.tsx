@@ -70,11 +70,11 @@ const RankingWidget = () => {
       </CardHeader>
       <CardContent className="flex-1 flex flex-col pt-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid grid-cols-4 h-8">
-            <TabsTrigger value="ward" className="text-xs px-1">Ward</TabsTrigger>
-            <TabsTrigger value="lga" className="text-xs px-1">LGA</TabsTrigger>
-            <TabsTrigger value="state" className="text-xs px-1">State</TabsTrigger>
-            <TabsTrigger value="country" className="text-xs px-1">Country</TabsTrigger>
+          <TabsList className="grid grid-cols-4 w-full bg-muted/80 p-1 rounded-lg h-10">
+            <TabsTrigger value="ward" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Ward</TabsTrigger>
+            <TabsTrigger value="lga" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">LGA</TabsTrigger>
+            <TabsTrigger value="state" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">State</TabsTrigger>
+            <TabsTrigger value="country" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Country</TabsTrigger>
           </TabsList>
           
           {Object.keys(mockLeaderboard).map((key) => (
