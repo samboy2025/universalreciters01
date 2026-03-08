@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,84 +19,214 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-const transactions = [
-  { id: 1, type: "credit", description: "Point Maturity Bonus", amount: 100, date: "Today" },
-  { id: 2, type: "debit", description: "Recitation Fee", amount: -30, date: "Today" },
-  { id: 3, type: "credit", description: "Referral Bonus", amount: 1, date: "Yesterday", isPoints: true },
-  { id: 4, type: "credit", description: "Recitation Completed", amount: 1, date: "Yesterday", isPoints: true },
-  { id: 5, type: "debit", description: "Video Unlock", amount: -3, date: "2 days ago" },
-];
+interface Transaction {
+  id: string;
+  type: string;
+  category: string;
+  description: string | null;
+  amount: number;
+  points_amount: number | null;
+  status: string;
+  created_at: string;
+}
 
 const Wallet = () => {
-  const { profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [buyAmount, setBuyAmount] = useState("");
   const [sellAmount, setSellAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [redemptionPin, setRedemptionPin] = useState("");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [redeeming, setRedeeming] = useState(false);
 
-  const handleBuyPoints = () => {
+  const fetchTransactions = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (data) setTransactions(data);
+    setLoadingTx(false);
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [user]);
+
+  const handleRedeemPin = async () => {
+    if (!redemptionPin || !user) {
+      toast({ title: "Enter a valid PIN", variant: "destructive" });
+      return;
+    }
+
+    setRedeeming(true);
+    try {
+      // Find the pin
+      const { data: pin, error: pinError } = await supabase
+        .from("redemption_pins")
+        .select("*")
+        .eq("pin_code", redemptionPin.toUpperCase())
+        .eq("is_redeemed", false)
+        .single();
+
+      if (pinError || !pin) {
+        toast({ title: "Invalid or already redeemed PIN", variant: "destructive" });
+        setRedeeming(false);
+        return;
+      }
+
+      // Mark pin as redeemed
+      await supabase
+        .from("redemption_pins")
+        .update({
+          is_redeemed: true,
+          redeemed_by: user.id,
+          redeemed_at: new Date().toISOString(),
+        })
+        .eq("id", pin.id);
+
+      // Add balance to profile
+      await supabase
+        .from("profiles")
+        .update({
+          money_balance: (profile?.money_balance || 0) + Number(pin.value),
+        })
+        .eq("id", user.id);
+
+      // Create transaction record
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        type: "credit",
+        category: "pin_redemption",
+        description: `PIN redeemed: ${pin.pin_code}`,
+        amount: Number(pin.value),
+        status: "completed",
+      });
+
+      await refreshProfile();
+      fetchTransactions();
+
+      toast({
+        title: "PIN Redeemed!",
+        description: `₦${Number(pin.value).toLocaleString()} added to your wallet`,
+      });
+      setRedemptionPin("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleBuyPoints = async () => {
     const amount = parseInt(buyAmount);
-    if (!amount || amount < 1) {
+    if (!amount || amount < 1 || !user) {
       toast({ title: "Invalid amount", variant: "destructive" });
       return;
     }
-    toast({ 
-      title: "Processing...", 
-      description: `Buying ${amount} points for ₦${amount * 70}` 
+    const cost = amount * 70;
+    if ((profile?.money_balance || 0) < cost) {
+      toast({ title: "Insufficient balance", description: `You need ₦${cost.toLocaleString()}`, variant: "destructive" });
+      return;
+    }
+
+    await supabase.from("profiles").update({
+      money_balance: (profile?.money_balance || 0) - cost,
+      points: (profile?.points || 0) + amount,
+    }).eq("id", user.id);
+
+    await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "debit",
+      category: "buy_points",
+      description: `Bought ${amount} points`,
+      amount: cost,
+      points_amount: amount,
+      status: "completed",
     });
+
+    await refreshProfile();
+    fetchTransactions();
+    setBuyAmount("");
+    toast({ title: "Points purchased!", description: `${amount} points added` });
   };
 
-  const handleSellPoints = () => {
+  const handleSellPoints = async () => {
     const amount = parseInt(sellAmount);
-    if (!amount || amount < 50) {
-      toast({ 
-        title: "Minimum 50 points required", 
-        variant: "destructive" 
-      });
+    if (!amount || amount < 50 || !user) {
+      toast({ title: "Minimum 50 points required", variant: "destructive" });
       return;
     }
-    toast({ 
-      title: "Sale initiated", 
-      description: `Selling ${amount} points for ₦${amount * 50}` 
+    if ((profile?.points || 0) < amount) {
+      toast({ title: "Insufficient points", variant: "destructive" });
+      return;
+    }
+    const value = amount * 50;
+
+    await supabase.from("profiles").update({
+      points: (profile?.points || 0) - amount,
+      money_balance: (profile?.money_balance || 0) + value,
+    }).eq("id", user.id);
+
+    await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "credit",
+      category: "sell_points",
+      description: `Sold ${amount} points`,
+      amount: value,
+      points_amount: -amount,
+      status: "completed",
     });
+
+    await refreshProfile();
+    fetchTransactions();
+    setSellAmount("");
+    toast({ title: "Points sold!", description: `₦${value.toLocaleString()} added to balance` });
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const amount = parseInt(withdrawAmount);
-    if (!amount || amount < 1000) {
-      toast({ 
-        title: "Minimum ₦1,000 required", 
-        variant: "destructive" 
-      });
+    if (!amount || amount < 1000 || !user) {
+      toast({ title: "Minimum ₦1,000 required", variant: "destructive" });
       return;
     }
-    toast({ 
-      title: "Withdrawal initiated", 
-      description: `₦${amount} will be sent to your bank account` 
-    });
-  };
+    if ((profile?.money_balance || 0) < amount) {
+      toast({ title: "Insufficient balance", variant: "destructive" });
+      return;
+    }
 
-  const handleRedeemPin = () => {
-    if (!redemptionPin || redemptionPin.length !== 12) {
-      toast({ 
-        title: "Invalid PIN", 
-        description: "Please enter a valid 12-digit PIN",
-        variant: "destructive" 
-      });
-      return;
-    }
-    toast({ 
-      title: "PIN Redeemed!", 
-      description: "₦100 added to your wallet" 
+    await supabase.from("profiles").update({
+      money_balance: (profile?.money_balance || 0) - amount,
+    }).eq("id", user.id);
+
+    await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "debit",
+      category: "withdrawal",
+      description: `Withdrawal to bank`,
+      amount,
+      status: "pending",
     });
-    setRedemptionPin("");
+
+    await refreshProfile();
+    fetchTransactions();
+    setWithdrawAmount("");
+    toast({ title: "Withdrawal initiated", description: `₦${amount.toLocaleString()} pending transfer` });
   };
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(`https://universalreciters.com/ref/${profile?.referral_code || "DEMO123"}`);
+    navigator.clipboard.writeText(
+      `${window.location.origin}/register?ref=${profile?.referral_code || ""}`
+    );
     toast({ title: "Referral link copied!" });
   };
 
@@ -143,12 +273,11 @@ const Wallet = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Maturing Points</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">25</p>
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    In 18 days → ₦2,500
+                  <p className="text-sm text-muted-foreground">Total Transactions</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
+                    {transactions.length}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">All-time</p>
                 </div>
                 <TrendingUp className="w-10 h-10 text-success" />
               </div>
@@ -168,7 +297,7 @@ const Wallet = () => {
                   <TabsTrigger value="buy">Buy Points</TabsTrigger>
                   <TabsTrigger value="sell">Sell Points</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="buy" className="space-y-4 mt-4">
                   <div className="bg-muted rounded-lg p-4 text-sm">
                     <div className="flex justify-between">
@@ -192,7 +321,7 @@ const Wallet = () => {
                   </div>
                   <Button className="w-full" onClick={handleBuyPoints}>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Buy with Paystack
+                    Buy Points
                   </Button>
                 </TabsContent>
 
@@ -205,10 +334,6 @@ const Wallet = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Minimum</span>
                       <span className="font-medium">50 points</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">30-Day Maturity Rate</span>
-                      <span className="font-medium text-success">₦100 per point</span>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -249,23 +374,26 @@ const Wallet = () => {
                   <div className="bg-accent/10 rounded-lg p-4 text-sm">
                     <p className="font-medium text-foreground mb-1">How it works:</p>
                     <ul className="text-muted-foreground space-y-1 text-xs">
-                      <li>• Each PIN = ₦100</li>
-                      <li>• Buy ₦2,000 bundle = 21 PINs</li>
-                      <li>• Share extra PINs with friends</li>
+                      <li>• Enter your redemption PIN code</li>
+                      <li>• The PIN value will be added to your wallet</li>
+                      <li>• Each PIN can only be used once</li>
                     </ul>
                   </div>
                   <div className="space-y-2">
-                    <Label>Enter 12-Digit PIN</Label>
+                    <Label>Enter PIN Code</Label>
                     <Input
-                      placeholder="XXXXXXXXXXXX"
+                      placeholder="Enter your PIN"
                       value={redemptionPin}
                       onChange={(e) => setRedemptionPin(e.target.value.toUpperCase())}
-                      maxLength={12}
                     />
                   </div>
-                  <Button className="w-full" onClick={handleRedeemPin}>
-                    <Key className="w-4 h-4 mr-2" />
-                    Redeem PIN
+                  <Button className="w-full" onClick={handleRedeemPin} disabled={redeeming}>
+                    {redeeming ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Key className="w-4 h-4 mr-2" />
+                    )}
+                    {redeeming ? "Redeeming..." : "Redeem PIN"}
                   </Button>
                 </TabsContent>
 
@@ -273,7 +401,9 @@ const Wallet = () => {
                   <div className="bg-muted rounded-lg p-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Available</span>
-                      <span className="font-medium">₦{Number(profile?.money_balance || 0).toLocaleString()}</span>
+                      <span className="font-medium">
+                        ₦{Number(profile?.money_balance || 0).toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className="text-muted-foreground">Minimum</span>
@@ -313,7 +443,7 @@ const Wallet = () => {
             </p>
             <div className="flex gap-2">
               <Input
-                value={`universalreciters.com/ref/${profile?.referral_code || "DEMO123"}`}
+                value={`${window.location.origin}/register?ref=${profile?.referral_code || ""}`}
                 readOnly
                 className="flex-1"
               />
@@ -330,32 +460,63 @@ const Wallet = () => {
             <CardTitle>Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    tx.type === "credit" ? "bg-success/20" : "bg-destructive/20"
-                  }`}>
-                    {tx.type === "credit" ? (
-                      <ArrowDownLeft className="w-5 h-5 text-success" />
-                    ) : (
-                      <ArrowUpRight className="w-5 h-5 text-destructive" />
-                    )}
+            {loadingTx ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No transactions yet
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center gap-4 p-3 rounded-lg bg-muted/50"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === "credit"
+                          ? "bg-success/20"
+                          : "bg-destructive/20"
+                      }`}
+                    >
+                      {tx.type === "credit" ? (
+                        <ArrowDownLeft className="w-5 h-5 text-success" />
+                      ) : (
+                        <ArrowUpRight className="w-5 h-5 text-destructive" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">
+                        {tx.description || tx.category}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(tx.created_at), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`font-semibold ${
+                          tx.type === "credit"
+                            ? "text-success"
+                            : "text-destructive"
+                        }`}
+                      >
+                        {tx.type === "credit" ? "+" : "-"}₦
+                        {Number(tx.amount).toLocaleString()}
+                      </p>
+                      {tx.status === "pending" && (
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground">{tx.date}</p>
-                  </div>
-                  <div className={`font-semibold ${
-                    tx.type === "credit" ? "text-success" : "text-destructive"
-                  }`}>
-                    {tx.type === "credit" ? "+" : ""}{tx.amount}{tx.isPoints ? " pts" : ""}
-                    {!tx.isPoints && tx.type === "debit" && " ₦"}
-                    {!tx.isPoints && tx.type === "credit" && " ₦"}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

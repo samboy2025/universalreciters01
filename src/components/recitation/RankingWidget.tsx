@@ -1,50 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Crown, MapPin } from "lucide-react";
+import { Trophy, Medal, Crown, MapPin, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LeaderboardEntry {
   rank: number;
   name: string;
-  avatar?: string;
   points: number;
   location: string;
+  id: string;
 }
-
-const mockLeaderboard: Record<string, LeaderboardEntry[]> = {
-  ward: [
-    { rank: 1, name: "Ahmad Ibrahim", points: 2450, location: "Ward 3" },
-    { rank: 2, name: "Fatima Yusuf", points: 2380, location: "Ward 3" },
-    { rank: 3, name: "Usman Mohammed", points: 2120, location: "Ward 3" },
-    { rank: 4, name: "Aisha Bello", points: 1890, location: "Ward 3" },
-    { rank: 5, name: "Ibrahim Hassan", points: 1750, location: "Ward 3" },
-  ],
-  lga: [
-    { rank: 1, name: "Musa Aliyu", points: 5420, location: "Gwale LGA" },
-    { rank: 2, name: "Halima Sani", points: 5180, location: "Gwale LGA" },
-    { rank: 3, name: "Yusuf Abdullahi", points: 4950, location: "Gwale LGA" },
-    { rank: 4, name: "Amina Garba", points: 4720, location: "Gwale LGA" },
-    { rank: 5, name: "Bashir Ismail", points: 4500, location: "Gwale LGA" },
-  ],
-  state: [
-    { rank: 1, name: "Kabir Musa", points: 15420, location: "Kano" },
-    { rank: 2, name: "Zainab Ahmed", points: 14850, location: "Kano" },
-    { rank: 3, name: "Salisu Ibrahim", points: 13200, location: "Kano" },
-    { rank: 4, name: "Hafsat Umar", points: 12800, location: "Kano" },
-    { rank: 5, name: "Adamu Suleiman", points: 11500, location: "Kano" },
-  ],
-  country: [
-    { rank: 1, name: "Ahmad Ibrahim", points: 25420, location: "Kano" },
-    { rank: 2, name: "Fatima Yusuf", points: 24850, location: "Lagos" },
-    { rank: 3, name: "Usman Mohammed", points: 23200, location: "Kaduna" },
-    { rank: 4, name: "Aisha Bello", points: 22800, location: "Sokoto" },
-    { rank: 5, name: "Ibrahim Hassan", points: 21500, location: "Borno" },
-  ],
-};
 
 const RankingWidget = () => {
   const [activeTab, setActiveTab] = useState("ward");
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+
+  const fetchRankings = async (scope: string) => {
+    setLoading(true);
+    let query = supabase
+      .from("profiles")
+      .select("id, name, points, ward, lga, state")
+      .order("points", { ascending: false })
+      .limit(5);
+
+    if (scope === "ward" && profile?.ward) {
+      query = query.eq("ward", profile.ward);
+    } else if (scope === "lga" && profile?.lga) {
+      query = query.eq("lga", profile.lga);
+    } else if (scope === "state" && profile?.state) {
+      query = query.eq("state", profile.state);
+    }
+
+    const { data } = await query;
+
+    if (data) {
+      const mapped = data.map((p, i) => ({
+        rank: i + 1,
+        name: p.name,
+        points: p.points || 0,
+        location: scope === "ward" ? p.ward : scope === "lga" ? p.lga : scope === "state" ? p.state : p.state,
+        id: p.id,
+      }));
+      setEntries(mapped);
+
+      const myRank = mapped.findIndex((e) => e.id === profile?.id);
+      setUserRank(myRank >= 0 ? myRank + 1 : null);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRankings(activeTab);
+  }, [activeTab, profile]);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="w-4 h-4 text-accent" />;
@@ -76,21 +88,27 @@ const RankingWidget = () => {
             <TabsTrigger value="state" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">State</TabsTrigger>
             <TabsTrigger value="country" className="text-xs rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Country</TabsTrigger>
           </TabsList>
-          
-          {Object.keys(mockLeaderboard).map((key) => (
-            <TabsContent key={key} value={key} className="flex-1 mt-2">
+
+          <div className="flex-1 mt-2">
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : entries.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-6">No reciters in this area yet</p>
+            ) : (
               <div className="space-y-2">
-                {mockLeaderboard[key].slice(0, 5).map((entry) => (
+                {entries.map((entry) => (
                   <div
-                    key={entry.rank}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${getRankBg(entry.rank)}`}
+                    key={entry.id}
+                    className={`flex items-center gap-2 p-2 rounded-lg ${getRankBg(entry.rank)} ${entry.id === profile?.id ? "ring-1 ring-primary" : ""}`}
                   >
                     <div className="w-6 h-6 flex items-center justify-center">
                       {getRankIcon(entry.rank)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium text-foreground truncate">
-                        {entry.name}
+                        {entry.name} {entry.id === profile?.id && "(You)"}
                       </div>
                       <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <MapPin className="w-2 h-2" />
@@ -106,20 +124,20 @@ const RankingWidget = () => {
                   </div>
                 ))}
               </div>
-            </TabsContent>
-          ))}
+            )}
+          </div>
         </Tabs>
-        
+
         {/* Current User Rank */}
         <div className="mt-3 pt-3 border-t border-border">
           <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg">
             <div className="w-6 h-6 flex items-center justify-center text-xs font-medium text-primary">
-              42
+              {userRank || "--"}
             </div>
             <div className="flex-1">
               <div className="text-xs font-medium text-foreground">You</div>
             </div>
-            <div className="text-xs font-semibold text-primary">150 pts</div>
+            <div className="text-xs font-semibold text-primary">{profile?.points || 0} pts</div>
           </div>
         </div>
       </CardContent>
