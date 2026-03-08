@@ -3,11 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/ui/Logo";
 import { Menu, X, User, LogIn, Sun, Moon } from "lucide-react";
-import { useState as useStateDark } from "react";
 import { cn } from "@/lib/utils";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    document.documentElement.classList.contains("dark")
+  );
   const location = useLocation();
 
   const navLinks = [
@@ -19,16 +21,20 @@ const Navbar = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const toggleDarkMode = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to="/">
             <Logo size="md" />
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
@@ -36,9 +42,7 @@ const Navbar = () => {
                 to={link.href}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
-                  isActive(link.href)
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                  isActive(link.href) ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {link.label}
@@ -46,8 +50,10 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-full">
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             <Link to="/login">
               <Button variant="ghost" size="sm">
                 <LogIn className="w-4 h-4 mr-2" />
@@ -62,16 +68,19 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-full">
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
+            <button
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-2">
