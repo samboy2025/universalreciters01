@@ -1,242 +1,302 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { 
-  Play, 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  Eye, 
-  Lock,
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Play,
+  Heart,
+  MessageCircle,
+  Share2,
+  Eye,
   Search,
-  Filter,
-  Upload,
-  User
+  Loader2,
+  X,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-interface StreamingVideo {
+interface Stream {
   id: string;
-  user: {
-    name: string;
-    avatar?: string;
-  };
+  user_id: string;
   title: string;
-  thumbnail?: string;
-  duration: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration: number;
   views: number;
   likes: number;
-  comments: number;
-  unlockFee: number;
-  isUnlocked: boolean;
-  type: "recitation" | "upload";
-  createdAt: string;
+  type: string;
+  is_public: boolean;
+  created_at: string;
+  profiles: {
+    name: string;
+    avatar_url: string | null;
+  };
 }
 
-const mockVideos: StreamingVideo[] = [
-  {
-    id: "1",
-    user: { name: "Ahmad Ibrahim" },
-    title: "My Surah Al-Fatiha Recitation",
-    duration: "3:45",
-    views: 1542,
-    likes: 234,
-    comments: 45,
-    unlockFee: 0,
-    isUnlocked: true,
-    type: "recitation",
-    createdAt: "2 hours ago",
-  },
-  {
-    id: "2",
-    user: { name: "Fatima Yusuf" },
-    title: "Beautiful Surah Ar-Rahman",
-    duration: "12:30",
-    views: 3240,
-    likes: 567,
-    comments: 89,
-    unlockFee: 3,
-    isUnlocked: false,
-    type: "upload",
-    createdAt: "5 hours ago",
-  },
-  {
-    id: "3",
-    user: { name: "Usman Mohammed" },
-    title: "Learning Tajweed - Week 1",
-    duration: "8:15",
-    views: 892,
-    likes: 156,
-    comments: 23,
-    unlockFee: 3,
-    isUnlocked: false,
-    type: "upload",
-    createdAt: "1 day ago",
-  },
-  {
-    id: "4",
-    user: { name: "Aisha Bello" },
-    title: "Surah Al-Mulk Complete",
-    duration: "15:20",
-    views: 2150,
-    likes: 412,
-    comments: 67,
-    unlockFee: 0,
-    isUnlocked: true,
-    type: "recitation",
-    createdAt: "2 days ago",
-  },
-  {
-    id: "5",
-    user: { name: "Ibrahim Hassan" },
-    title: "My Journey - 100 Days Challenge",
-    duration: "5:45",
-    views: 1876,
-    likes: 298,
-    comments: 54,
-    unlockFee: 3,
-    isUnlocked: false,
-    type: "upload",
-    createdAt: "3 days ago",
-  },
-  {
-    id: "6",
-    user: { name: "Maryam Suleiman" },
-    title: "Tips for Better Recitation",
-    duration: "7:30",
-    views: 4521,
-    likes: 823,
-    comments: 112,
-    unlockFee: 0,
-    isUnlocked: true,
-    type: "upload",
-    createdAt: "1 week ago",
-  },
-];
-
 const Streaming = () => {
+  const [streams, setStreams] = useState<Stream[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [likedStreams, setLikedStreams] = useState<Set<string>>(new Set());
 
-  const filteredVideos = mockVideos.filter((video) => {
-    const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.user.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = activeTab === "all" || 
-      (activeTab === "recitations" && video.type === "recitation") ||
-      (activeTab === "uploads" && video.type === "upload") ||
-      (activeTab === "free" && video.unlockFee === 0);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const fetchStreams = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("streams")
+      .select("*, profiles(name, avatar_url)")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false });
+
+    if (data && !error) {
+      setStreams(data as unknown as Stream[]);
+    }
+    setLoading(false);
+  };
+
+  const fetchLikedStreams = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("stream_likes")
+      .select("stream_id")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setLikedStreams(new Set(data.map((l) => l.stream_id)));
+    }
+  };
+
+  useEffect(() => {
+    fetchStreams();
+    fetchLikedStreams();
+
+    const channel = supabase
+      .channel("streams-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "streams" },
+        () => fetchStreams()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const handleLike = async (streamId: string) => {
+    if (!user) return;
+
+    const isLiked = likedStreams.has(streamId);
+
+    if (isLiked) {
+      await supabase
+        .from("stream_likes")
+        .delete()
+        .eq("stream_id", streamId)
+        .eq("user_id", user.id);
+
+      await supabase
+        .from("streams")
+        .update({ likes: Math.max(0, (streams.find(s => s.id === streamId)?.likes || 1) - 1) })
+        .eq("id", streamId);
+
+      setLikedStreams((prev) => {
+        const next = new Set(prev);
+        next.delete(streamId);
+        return next;
+      });
+    } else {
+      await supabase
+        .from("stream_likes")
+        .insert({ stream_id: streamId, user_id: user.id });
+
+      await supabase
+        .from("streams")
+        .update({ likes: (streams.find(s => s.id === streamId)?.likes || 0) + 1 })
+        .eq("id", streamId);
+
+      setLikedStreams((prev) => new Set(prev).add(streamId));
+    }
+
+    fetchStreams();
+  };
+
+  const handleView = async (streamId: string) => {
+    setPlayingVideo(streamId);
+    const stream = streams.find((s) => s.id === streamId);
+    if (stream) {
+      await supabase
+        .from("streams")
+        .update({ views: (stream.views || 0) + 1 })
+        .eq("id", streamId);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const filteredStreams = streams.filter((stream) => {
+    const matchesSearch =
+      stream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stream.profiles?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab =
+      activeTab === "all" ||
+      (activeTab === "mine" && stream.user_id === user?.id) ||
+      (activeTab === "recitations" && stream.type === "recitation");
     return matchesSearch && matchesTab;
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      
-      <main className="flex-1 pt-20">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Streaming Home</h1>
-              <p className="text-muted-foreground mt-1">
-                Watch and share Qur'an recitations from the community
-              </p>
-            </div>
-            <Button className="gap-2">
-              <Upload className="w-4 h-4" />
-              Upload Video
-            </Button>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Streaming</h1>
+          <p className="text-muted-foreground text-sm">
+            Watch and share Qur'an recitations from the community
+          </p>
+        </div>
 
-          {/* Search & Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search videos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="recitations">Recitations</TabsTrigger>
-                <TabsTrigger value="uploads">Uploads</TabsTrigger>
-                <TabsTrigger value="free">Free</TabsTrigger>
-              </TabsList>
-            </Tabs>
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search streams..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="recitations">Recitations</TabsTrigger>
+              <TabsTrigger value="mine">My Videos</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-          {/* Video Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVideos.map((video) => (
-              <Card key={video.id} className="overflow-hidden group hover:shadow-glow transition-all">
-                {/* Thumbnail */}
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Video Grid */}
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredStreams.map((stream) => (
+              <Card
+                key={stream.id}
+                className="overflow-hidden group hover:shadow-glow transition-all"
+              >
+                {/* Video / Thumbnail */}
                 <div className="relative aspect-video bg-muted">
-                  <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                    <Play className="w-12 h-12 text-primary/30" />
-                  </div>
-                  {!video.isUnlocked && (
-                    <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm flex items-center justify-center">
-                      <div className="text-center text-primary-foreground">
-                        <Lock className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm font-medium">₦{video.unlockFee} to unlock</p>
+                  {playingVideo === stream.id ? (
+                    <div className="relative w-full h-full">
+                      <video
+                        src={stream.video_url}
+                        controls
+                        autoPlay
+                        className="w-full h-full object-contain bg-foreground/5"
+                      />
+                      <button
+                        onClick={() => setPlayingVideo(null)}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-foreground/70 flex items-center justify-center hover:bg-foreground/90 transition-colors"
+                      >
+                        <X className="w-4 h-4 text-background" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
+                        <Play className="w-12 h-12 text-primary/30" />
                       </div>
-                    </div>
+                      <div className="absolute bottom-2 right-2 bg-foreground/80 text-background text-xs px-2 py-0.5 rounded">
+                        {formatDuration(stream.duration || 0)}
+                      </div>
+                      <button
+                        onClick={() => handleView(stream.id)}
+                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-glow">
+                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                        </div>
+                      </button>
+                    </>
                   )}
-                  <div className="absolute bottom-2 right-2 bg-foreground/80 text-primary-foreground text-xs px-2 py-0.5 rounded">
-                    {video.duration}
-                  </div>
-                  <button className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-glow">
-                      <Play className="w-6 h-6 text-primary-foreground ml-1" />
-                    </div>
-                  </button>
                 </div>
 
                 <CardContent className="p-4">
                   <div className="flex gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-primary" />
-                    </div>
+                    <Avatar className="w-9 h-9 flex-shrink-0">
+                      <AvatarImage src={stream.profiles?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        {stream.profiles?.name?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate">
-                        {video.title}
+                      <h3 className="font-medium text-foreground text-sm truncate">
+                        {stream.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground">{video.user.name}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
+                        {stream.profiles?.name}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Eye className="w-3 h-3" />
-                          {video.views.toLocaleString()}
+                          {(stream.views || 0).toLocaleString()}
                         </span>
-                        <span>{video.createdAt}</span>
+                        <span>
+                          {formatDistanceToNow(new Date(stream.created_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Interaction Stats */}
-                  <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border">
-                    <button className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-xs">{video.likes}</span>
-                    </button>
-                    <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="text-xs">{video.comments}</span>
+                  {/* Interactions */}
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
+                    <button
+                      onClick={() => handleLike(stream.id)}
+                      className={`flex items-center gap-1 transition-colors ${
+                        likedStreams.has(stream.id)
+                          ? "text-destructive"
+                          : "text-muted-foreground hover:text-destructive"
+                      }`}
+                    >
+                      <Heart
+                        className={`w-4 h-4 ${
+                          likedStreams.has(stream.id) ? "fill-current" : ""
+                        }`}
+                      />
+                      <span className="text-xs">{stream.likes || 0}</span>
                     </button>
                     <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
                       <Share2 className="w-4 h-4" />
                       <span className="text-xs">Share</span>
                     </button>
-                    {video.type === "recitation" && (
+                    {stream.type === "recitation" && (
                       <Badge variant="secondary" className="ml-auto text-xs">
-                        AI Checked
+                        Recitation
                       </Badge>
                     )}
                   </div>
@@ -244,17 +304,19 @@ const Streaming = () => {
               </Card>
             ))}
           </div>
+        )}
 
-          {filteredVideos.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No videos found matching your search.</p>
-            </div>
-          )}
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+        {!loading && filteredStreams.length === 0 && (
+          <div className="text-center py-12">
+            <Play className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground font-medium">No streams yet</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Record from Selfie Mirror on the Dashboard to post your first stream!
+            </p>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
   );
 };
 
