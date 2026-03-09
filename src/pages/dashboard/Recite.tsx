@@ -120,10 +120,76 @@ const Recite = () => {
     }
   };
 
+  const fetchUnlockedVideos = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("transactions")
+      .select("description")
+      .eq("user_id", user.id)
+      .eq("category", "video_unlock")
+      .eq("status", "completed");
+
+    if (data) {
+      const ids = new Set<string>();
+      data.forEach((tx) => {
+        const match = tx.description?.match(/Unlocked video: (.+)/);
+        if (match) ids.add(match[1]);
+      });
+      setUnlockedVideoIds(ids);
+    }
+  };
+
   useEffect(() => {
     fetchVideos();
     fetchUserRecitations();
+    fetchUnlockedVideos();
   }, [user]);
+
+  const isVideoUnlocked = (video: Video) => {
+    if (video.id === 'fallback') return true;
+    if (!video.unlock_fee || video.unlock_fee <= 0) return true;
+    return unlockedVideoIds.has(video.id);
+  };
+
+  const handleUnlockVideo = async (video: Video) => {
+    if (!user) return;
+    setIsUnlocking(true);
+    try {
+      const { data, error } = await supabase.rpc("unlock_video", {
+        _user_id: user.id,
+        _video_id: video.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; fee?: number; required?: number; balance?: number };
+
+      if (!result.success) {
+        if (result.error === 'Insufficient balance') {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ₦${result.required} but have ₦${Number(result.balance).toLocaleString()}. Fund your wallet first.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: result.error || "Failed to unlock", variant: "destructive" });
+        }
+        return;
+      }
+
+      toast({
+        title: result.fee === 0 || result.already_unlocked ? "Video Ready!" : "Video Unlocked!",
+        description: result.fee && result.fee > 0 ? `₦${result.fee} deducted from your wallet` : "This video is free to access",
+      });
+
+      await fetchUnlockedVideos();
+      if (refreshProfile) refreshProfile();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
 
   // Timer for recording
   useEffect(() => {
