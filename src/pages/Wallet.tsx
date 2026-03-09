@@ -70,54 +70,27 @@ const Wallet = () => {
 
     setRedeeming(true);
     try {
-      // Find the pin
-      const { data: pin, error: pinError } = await supabase
-        .from("redemption_pins")
-        .select("*")
-        .eq("pin_code", redemptionPin.toUpperCase())
-        .eq("is_redeemed", false)
-        .single();
+      const { data, error } = await supabase.rpc("redeem_pin", {
+        _pin_code: redemptionPin.toUpperCase(),
+        _user_id: user.id,
+      });
 
-      if (pinError || !pin) {
-        toast({ title: "Invalid or already redeemed PIN", variant: "destructive" });
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; value?: number };
+
+      if (!result.success) {
+        toast({ title: result.error || "Invalid or already redeemed PIN", variant: "destructive" });
         setRedeeming(false);
         return;
       }
-
-      // Mark pin as redeemed
-      await supabase
-        .from("redemption_pins")
-        .update({
-          is_redeemed: true,
-          redeemed_by: user.id,
-          redeemed_at: new Date().toISOString(),
-        })
-        .eq("id", pin.id);
-
-      // Add balance to profile
-      await supabase
-        .from("profiles")
-        .update({
-          money_balance: (profile?.money_balance || 0) + Number(pin.value),
-        })
-        .eq("id", user.id);
-
-      // Create transaction record
-      await supabase.from("transactions").insert({
-        user_id: user.id,
-        type: "credit",
-        category: "pin_redemption",
-        description: `PIN redeemed: ${pin.pin_code}`,
-        amount: Number(pin.value),
-        status: "completed",
-      });
 
       await refreshProfile();
       fetchTransactions();
 
       toast({
         title: "PIN Redeemed!",
-        description: `₦${Number(pin.value).toLocaleString()} added to your wallet`,
+        description: `₦${Number(result.value).toLocaleString()} added to your wallet`,
       });
       setRedemptionPin("");
     } catch (err: any) {
