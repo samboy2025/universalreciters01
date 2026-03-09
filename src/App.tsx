@@ -24,6 +24,11 @@ import AdminVideos from "./pages/admin/AdminVideos";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPins from "./pages/admin/AdminPins";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminSurahs from "./pages/admin/AdminSurahs";
+import AdminSurahTexts from "./pages/admin/AdminSurahTexts";
+import AdminRankings from "./pages/admin/AdminRankings";
+import AdminLearning from "./pages/admin/AdminLearning";
+import AdminWallet from "./pages/admin/AdminWallet";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -97,6 +102,31 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute requireAdmin>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/surahs" element={
+              <ProtectedRoute requireAdmin>
+                <AdminSurahs />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/surah-texts" element={
+              <ProtectedRoute requireAdmin>
+                <AdminSurahTexts />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/rankings" element={
+              <ProtectedRoute requireAdmin>
+                <AdminRankings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/learning" element={
+              <ProtectedRoute requireAdmin>
+                <AdminLearning />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/wallet" element={
+              <ProtectedRoute requireAdmin>
+                <AdminWallet />
               </ProtectedRoute>
             } />
             <Route path="/admin/videos" element={

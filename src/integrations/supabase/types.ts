@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      banks: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       conversation_members: {
         Row: {
           conversation_id: string
@@ -87,6 +138,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      learning_videos: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          thumbnail_url: string | null
+          title: string
+          unlock_fee: number
+          updated_at: string | null
+          views: number | null
+          youtube_url: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          thumbnail_url?: string | null
+          title: string
+          unlock_fee?: number
+          updated_at?: string | null
+          views?: number | null
+          youtube_url: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          unlock_fee?: number
+          updated_at?: string | null
+          views?: number | null
+          youtube_url?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -386,6 +488,51 @@ export type Database = {
           },
         ]
       }
+      surahs: {
+        Row: {
+          arabic_text: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          juz: number | null
+          name_arabic: string
+          name_english: string
+          surah_number: number
+          total_ayahs: number | null
+          transliteration: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          arabic_text: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          juz?: number | null
+          name_arabic: string
+          name_english: string
+          surah_number: number
+          total_ayahs?: number | null
+          transliteration?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          arabic_text?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          juz?: number | null
+          name_arabic?: string
+          name_english?: string
+          surah_number?: number
+          total_ayahs?: number | null
+          transliteration?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -451,6 +598,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_video_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          learning_video_id: string
+          updated_at: string | null
+          user_id: string
+          watch_progress: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          learning_video_id: string
+          updated_at?: string | null
+          user_id: string
+          watch_progress?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          learning_video_id?: string
+          updated_at?: string | null
+          user_id?: string
+          watch_progress?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_video_progress_learning_video_id_fkey"
+            columns: ["learning_video_id"]
+            isOneToOne: false
+            referencedRelation: "learning_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           arabic_text: string
@@ -503,6 +691,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      withdrawal_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_code: string | null
+          bank_name: string
+          created_at: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_code?: string | null
+          bank_name: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_code?: string | null
+          bank_name?: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
