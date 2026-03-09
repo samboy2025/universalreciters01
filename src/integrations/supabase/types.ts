@@ -752,6 +752,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_pin: {
+        Args: { _pin_code: string; _user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
