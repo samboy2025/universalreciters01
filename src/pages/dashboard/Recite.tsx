@@ -471,24 +471,20 @@ const Recite = () => {
             <CardContent className="space-y-6">
               {/* Unlock Gate */}
               {selectedVideo && !isVideoUnlocked(selectedVideo) && (
-                <div className="text-center p-6 bg-muted/50 rounded-lg border border-border space-y-4">
-                  <Lock className="w-12 h-12 mx-auto text-muted-foreground" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">Video Locked</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Unlock <strong>{selectedVideo.title}</strong> for ₦{selectedVideo.unlock_fee}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your balance: ₦{Number(profile?.money_balance || 0).toLocaleString()}
-                    </p>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      <strong>{selectedVideo.title}</strong> — ₦{selectedVideo.unlock_fee}
+                    </span>
                   </div>
-                  <Button onClick={() => handleUnlockVideo(selectedVideo)} disabled={isUnlocking}>
+                  <Button size="sm" onClick={() => handleUnlockVideo(selectedVideo)} disabled={isUnlocking}>
                     {isUnlocking ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                     ) : (
-                      <Unlock className="w-4 h-4 mr-2" />
+                      <Unlock className="w-3 h-3 mr-1" />
                     )}
-                    Unlock for ₦{selectedVideo.unlock_fee}
+                    Unlock
                   </Button>
                 </div>
               )}
