@@ -50,11 +50,12 @@ interface AnalysisResult {
 // Fallback Arabic text - Suratul Fatiha
 const FALLBACK_ARABIC_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ الرَّحْمَٰنِ الرَّحِيمِ مَالِكِ يَوْمِ الدِّينِ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ";
 const FALLBACK_TITLE = "Suratul Fatiha (الفاتحة)";
-const FALLBACK_VIDEO = {
+const FALLBACK_VIDEO: Video = {
   id: 'fallback',
   title: FALLBACK_TITLE,
   arabic_text: FALLBACK_ARABIC_TEXT,
-  video_url: ''
+  video_url: '',
+  unlock_fee: 0,
 };
 
 const Recite = () => {
@@ -80,7 +81,7 @@ const Recite = () => {
   const fetchVideos = async () => {
     const { data } = await supabase
       .from("videos")
-      .select("id, title, arabic_text, video_url")
+      .select("id, title, arabic_text, video_url, unlock_fee")
       .order("created_at", { ascending: false });
 
     if (data && data.length > 0) {
