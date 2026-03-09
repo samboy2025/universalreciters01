@@ -79,7 +79,7 @@ const Recite = () => {
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
 
   // Fetch videos
@@ -162,7 +162,7 @@ const Recite = () => {
 
       if (error) throw error;
 
-      const result = data as { success: boolean; error?: string; fee?: number; required?: number; balance?: number };
+      const result = data as { success: boolean; error?: string; fee?: number; required?: number; balance?: number; already_unlocked?: boolean };
 
       if (!result.success) {
         if (result.error === 'Insufficient balance') {
