@@ -437,11 +437,13 @@ const AdminCMS = () => {
                   <Card>
                     <CardHeader>
                       <CardTitle>Brand Colors</CardTitle>
-                      <CardDescription>Set primary and accent colors for the site. Changes apply after saving and refreshing.</CardDescription>
+                      <CardDescription>Set colors for the entire site including sidebar. Changes apply instantly after saving.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-3">
-                        <Label>Primary Color</Label>
+
+                      {/* Primary Color */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Primary Color <span className="text-xs font-normal text-muted-foreground">(buttons, links, sidebar background)</span></Label>
                         <div className="flex items-center gap-3">
                           <input
                             type="color"
@@ -449,21 +451,40 @@ const AdminCMS = () => {
                             value={settings.theme_primary_hsl ? hslToHex(settings.theme_primary_hsl) : "#16a34a"}
                             onChange={(e) => setSettings({ ...settings, theme_primary_hsl: hexToHsl(e.target.value) })}
                           />
-                          <div className="flex-1">
-                            <Input
-                              value={settings.theme_primary_hsl || "142 76% 36%"}
-                              onChange={(e) => setSettings({ ...settings, theme_primary_hsl: e.target.value })}
-                              placeholder="142 76% 36%"
-                              className="font-mono text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">HSL format: hue° saturation% lightness%</p>
-                          </div>
+                          <Input
+                            value={settings.theme_primary_hsl || "158 64% 32%"}
+                            onChange={(e) => setSettings({ ...settings, theme_primary_hsl: e.target.value })}
+                            placeholder="158 64% 32%"
+                            className="font-mono text-sm"
+                          />
                         </div>
-                        <div className="h-10 rounded-md border border-border" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "142 76% 36%"})` }} />
+                        <div className="h-8 rounded-md border border-border flex items-center px-3" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "158 64% 32%"})` }}>
+                          <span className="text-xs" style={{ color: `hsl(${settings.theme_primary_foreground_hsl || "0 0% 100%"})` }}>Text on primary</span>
+                        </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <Label>Accent Color</Label>
+                      {/* Primary Text (Foreground) Color */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Primary Text Color <span className="text-xs font-normal text-muted-foreground">(text on primary-colored backgrounds)</span></Label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            className="w-12 h-10 rounded-md border border-input cursor-pointer bg-background"
+                            value={settings.theme_primary_foreground_hsl ? hslToHex(settings.theme_primary_foreground_hsl) : "#ffffff"}
+                            onChange={(e) => setSettings({ ...settings, theme_primary_foreground_hsl: hexToHsl(e.target.value) })}
+                          />
+                          <Input
+                            value={settings.theme_primary_foreground_hsl || "0 0% 100%"}
+                            onChange={(e) => setSettings({ ...settings, theme_primary_foreground_hsl: e.target.value })}
+                            placeholder="0 0% 100%"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Accent Color */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Accent Color <span className="text-xs font-normal text-muted-foreground">(highlights, badges, sidebar active items)</span></Label>
                         <div className="flex items-center gap-3">
                           <input
                             type="color"
@@ -471,20 +492,67 @@ const AdminCMS = () => {
                             value={settings.theme_accent_hsl ? hslToHex(settings.theme_accent_hsl) : "#f59e0b"}
                             onChange={(e) => setSettings({ ...settings, theme_accent_hsl: hexToHsl(e.target.value) })}
                           />
-                          <div className="flex-1">
-                            <Input
-                              value={settings.theme_accent_hsl || "38 92% 50%"}
-                              onChange={(e) => setSettings({ ...settings, theme_accent_hsl: e.target.value })}
-                              placeholder="38 92% 50%"
-                              className="font-mono text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">HSL format: hue° saturation% lightness%</p>
-                          </div>
+                          <Input
+                            value={settings.theme_accent_hsl || "45 90% 55%"}
+                            onChange={(e) => setSettings({ ...settings, theme_accent_hsl: e.target.value })}
+                            placeholder="45 90% 55%"
+                            className="font-mono text-sm"
+                          />
                         </div>
-                        <div className="h-10 rounded-md border border-border" style={{ backgroundColor: `hsl(${settings.theme_accent_hsl || "38 92% 50%"})` }} />
+                        <div className="h-8 rounded-md border border-border" style={{ backgroundColor: `hsl(${settings.theme_accent_hsl || "45 90% 55%"})` }} />
                       </div>
 
-                      <Button onClick={() => handleSaveSettings(["theme_primary_hsl", "theme_accent_hsl"])} className="gap-2 w-full">
+                      {/* Secondary Color */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Secondary Color <span className="text-xs font-normal text-muted-foreground">(secondary buttons, card backgrounds)</span></Label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            className="w-12 h-10 rounded-md border border-input cursor-pointer bg-background"
+                            value={settings.theme_secondary_hsl ? hslToHex(settings.theme_secondary_hsl) : "#f5f0e8"}
+                            onChange={(e) => setSettings({ ...settings, theme_secondary_hsl: hexToHsl(e.target.value) })}
+                          />
+                          <Input
+                            value={settings.theme_secondary_hsl || "40 50% 94%"}
+                            onChange={(e) => setSettings({ ...settings, theme_secondary_hsl: e.target.value })}
+                            placeholder="40 50% 94%"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                        <div className="h-8 rounded-md border border-border flex items-center px-3" style={{ backgroundColor: `hsl(${settings.theme_secondary_hsl || "40 50% 94%"})` }}>
+                          <span className="text-xs" style={{ color: `hsl(${settings.theme_secondary_foreground_hsl || "150 50% 15%"})` }}>Text on secondary</span>
+                        </div>
+                      </div>
+
+                      {/* Secondary Text Color */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Secondary Text Color <span className="text-xs font-normal text-muted-foreground">(text on secondary-colored backgrounds)</span></Label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            className="w-12 h-10 rounded-md border border-input cursor-pointer bg-background"
+                            value={settings.theme_secondary_foreground_hsl ? hslToHex(settings.theme_secondary_foreground_hsl) : "#1a3d2b"}
+                            onChange={(e) => setSettings({ ...settings, theme_secondary_foreground_hsl: hexToHsl(e.target.value) })}
+                          />
+                          <Input
+                            value={settings.theme_secondary_foreground_hsl || "150 50% 15%"}
+                            onChange={(e) => setSettings({ ...settings, theme_secondary_foreground_hsl: e.target.value })}
+                            placeholder="150 50% 15%"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => handleSaveSettings([
+                          "theme_primary_hsl",
+                          "theme_primary_foreground_hsl",
+                          "theme_accent_hsl",
+                          "theme_secondary_hsl",
+                          "theme_secondary_foreground_hsl",
+                        ])}
+                        className="gap-2 w-full"
+                      >
                         <Save className="w-4 h-4" /> Save Theme Colors
                       </Button>
                     </CardContent>
@@ -497,22 +565,30 @@ const AdminCMS = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="rounded-lg overflow-hidden border border-border">
-                        <div className="p-4" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "142 76% 36%"})` }}>
-                          <p className="text-white font-semibold">Primary Color</p>
-                          <p className="text-white/80 text-sm">Buttons, links, accents</p>
+                        {/* Sidebar preview */}
+                        <div className="p-3 flex items-center gap-2" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "158 64% 32%"})` }}>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${settings.theme_accent_hsl || "45 90% 55%"})` }} />
+                          <span className="text-xs font-semibold" style={{ color: `hsl(${settings.theme_primary_foreground_hsl || "0 0% 100%"})` }}>Sidebar Navigation</span>
                         </div>
-                        <div className="p-4" style={{ backgroundColor: `hsl(${settings.theme_accent_hsl || "38 92% 50%"})` }}>
-                          <p className="text-white font-semibold">Accent Color</p>
-                          <p className="text-white/80 text-sm">Highlights, badges, awards</p>
-                        </div>
-                        <div className="p-4 bg-background">
-                          <div className="flex gap-2">
-                            <div className="px-4 py-2 rounded-md text-sm font-medium text-white" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "142 76% 36%"})` }}>Primary Button</div>
-                            <div className="px-4 py-2 rounded-md text-sm font-medium border border-current" style={{ color: `hsl(${settings.theme_primary_hsl || "142 76% 36%"})` }}>Outline Button</div>
+                        {/* Primary button */}
+                        <div className="p-3 bg-background flex items-center gap-2">
+                          <div className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ backgroundColor: `hsl(${settings.theme_primary_hsl || "158 64% 32%"})`, color: `hsl(${settings.theme_primary_foreground_hsl || "0 0% 100%"})` }}>
+                            Primary Button
+                          </div>
+                          <div className="px-3 py-1.5 rounded-md text-xs font-medium border" style={{ borderColor: `hsl(${settings.theme_primary_hsl || "158 64% 32%"})`, color: `hsl(${settings.theme_primary_hsl || "158 64% 32%"})` }}>
+                            Outline
                           </div>
                         </div>
+                        {/* Accent */}
+                        <div className="p-3 flex items-center gap-2" style={{ backgroundColor: `hsl(${settings.theme_accent_hsl || "45 90% 55%"})` }}>
+                          <span className="text-xs font-semibold text-foreground">Accent — Gold Badges & Awards</span>
+                        </div>
+                        {/* Secondary */}
+                        <div className="p-3" style={{ backgroundColor: `hsl(${settings.theme_secondary_hsl || "40 50% 94%"})` }}>
+                          <span className="text-xs font-medium" style={{ color: `hsl(${settings.theme_secondary_foreground_hsl || "150 50% 15%"})` }}>Secondary — Card backgrounds & tags</span>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">Note: Full site re-theme takes effect after saving and refreshing the page.</p>
+                      <p className="text-xs text-muted-foreground">Sidebar color is auto-derived from the Primary Color. Changes apply instantly after saving.</p>
                     </CardContent>
                   </Card>
                 </div>
