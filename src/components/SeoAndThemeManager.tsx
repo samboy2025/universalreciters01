@@ -60,13 +60,52 @@ const SeoAndThemeManager = () => {
 
     const root = document.documentElement;
 
+    // Primary color + derived sidebar colors
     if (cms.theme_primary_hsl) {
       root.style.setProperty("--primary", cms.theme_primary_hsl);
+      root.style.setProperty("--ring", cms.theme_primary_hsl);
+
+      // Derive sidebar background as a darker/desaturated version of primary
+      const parts = cms.theme_primary_hsl.match(/(\d+\.?\d*)/g);
+      if (parts && parts.length >= 3) {
+        const h = parseFloat(parts[0]);
+        const s = Math.max(0, parseFloat(parts[1]) - 14);
+        const bgL = Math.max(0, parseFloat(parts[2]) - 14);
+        const accentL = Math.min(100, bgL + 7);
+        root.style.setProperty("--sidebar-background", `${h} ${s}% ${bgL}%`);
+        root.style.setProperty("--sidebar-accent", `${h} ${s}% ${accentL}%`);
+        root.style.setProperty("--sidebar-border", `${h} ${s}% ${accentL}%`);
+        root.style.setProperty("--sidebar-ring", cms.theme_accent_hsl || cms.theme_primary_hsl);
+      }
     }
+
+    // Primary foreground (text on primary background)
+    if (cms.theme_primary_foreground_hsl) {
+      root.style.setProperty("--primary-foreground", cms.theme_primary_foreground_hsl);
+    }
+
+    // Accent color
     if (cms.theme_accent_hsl) {
       root.style.setProperty("--accent", cms.theme_accent_hsl);
+      root.style.setProperty("--sidebar-primary", cms.theme_accent_hsl);
     }
-  }, [cms?.theme_primary_hsl, cms?.theme_accent_hsl]);
+
+    // Secondary color
+    if (cms.theme_secondary_hsl) {
+      root.style.setProperty("--secondary", cms.theme_secondary_hsl);
+    }
+
+    // Secondary foreground (text on secondary background)
+    if (cms.theme_secondary_foreground_hsl) {
+      root.style.setProperty("--secondary-foreground", cms.theme_secondary_foreground_hsl);
+    }
+  }, [
+    cms?.theme_primary_hsl,
+    cms?.theme_primary_foreground_hsl,
+    cms?.theme_accent_hsl,
+    cms?.theme_secondary_hsl,
+    cms?.theme_secondary_foreground_hsl,
+  ]);
 
   return null;
 };
