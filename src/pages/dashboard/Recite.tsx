@@ -71,6 +71,8 @@ const Recite = () => {
   const [userRecitations, setUserRecitations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [transcribedText, setTranscribedText] = useState("");
+  const [unlockedVideoIds, setUnlockedVideoIds] = useState<Set<string>>(new Set());
+  const [isUnlocking, setIsUnlocking] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
