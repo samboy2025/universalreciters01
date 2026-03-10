@@ -174,10 +174,33 @@ const AdminUsers = () => {
         _user_id: selectedUser.id,
         _amount: walletAmount,
       });
-
       if (error) throw error;
-
       toast({ title: `Added ₦${walletAmount.toLocaleString()} to user wallet` });
+      setWalletAmount(0);
+      setIsWalletOpen(false);
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeductBalance = async () => {
+    if (!selectedUser || walletAmount <= 0) return;
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_deduct_balance" as any, {
+        _user_id: selectedUser.id,
+        _amount: walletAmount,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result && !result.success) {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: `Deducted ₦${walletAmount.toLocaleString()} from user wallet` });
       setWalletAmount(0);
       setIsWalletOpen(false);
       fetchUsers();
