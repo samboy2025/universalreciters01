@@ -16,29 +16,50 @@ DECLARE
   _total_user_balance numeric;
   _total_points_balance bigint;
 BEGIN
-  SELECT count(*) INTO _total_users FROM public.profiles;
-  SELECT count(*) INTO _active_users FROM public.profiles WHERE is_active = true;
-  SELECT count(*) INTO _total_videos FROM public.videos;
-  SELECT count(*) INTO _total_recitations FROM public.recitations;
-  SELECT count(*) INTO _total_pins FROM public.redemption_pins;
-  SELECT count(*) INTO _redeemed_pins FROM public.redemption_pins WHERE is_redeemed = true;
-  SELECT count(*) INTO _total_transactions FROM public.transactions;
+  -- Count total users
+  SELECT COALESCE(count(*), 0) INTO _total_users FROM public.profiles;
+  
+  -- Count active users
+  SELECT COALESCE(count(*), 0) INTO _active_users FROM public.profiles WHERE is_active = true;
+  
+  -- Count total videos
+  SELECT COALESCE(count(*), 0) INTO _total_videos FROM public.videos;
+  
+  -- Count total recitations
+  SELECT COALESCE(count(*), 0) INTO _total_recitations FROM public.recitations;
+  
+  -- Count total pins
+  SELECT COALESCE(count(*), 0) INTO _total_pins FROM public.redemption_pins;
+  
+  -- Count redeemed pins
+  SELECT COALESCE(count(*), 0) INTO _redeemed_pins FROM public.redemption_pins WHERE is_redeemed = true;
+  
+  -- Count total transactions
+  SELECT COALESCE(count(*), 0) INTO _total_transactions FROM public.transactions;
 
-  SELECT COALESCE(sum(amount), 0) INTO _total_revenue FROM public.transactions WHERE type = 'debit';
+  -- Calculate total revenue from debit transactions (money spent by users)
+  SELECT COALESCE(sum(amount), 0) INTO _total_revenue 
+  FROM public.transactions 
+  WHERE type = 'debit' AND status = 'completed';
+  
+  -- Calculate total user balance
   SELECT COALESCE(sum(money_balance), 0) INTO _total_user_balance FROM public.profiles;
+  
+  -- Calculate total points balance
   SELECT COALESCE(sum(points), 0) INTO _total_points_balance FROM public.profiles;
 
+  -- Return all stats as JSON
   RETURN jsonb_build_object(
-    'totalUsers', _total_users,
-    'activeUsers', _active_users,
-    'totalVideos', _total_videos,
-    'totalRecitations', _total_recitations,
-    'totalPins', _total_pins,
-    'redeemedPins', _redeemed_pins,
-    'totalTransactions', _total_transactions,
-    'totalRevenue', _total_revenue,
-    'totalUserBalance', _total_user_balance,
-    'totalPointsBalance', _total_points_balance
+    'totalUsers', COALESCE(_total_users, 0),
+    'activeUsers', COALESCE(_active_users, 0),
+    'totalVideos', COALESCE(_total_videos, 0),
+    'totalRecitations', COALESCE(_total_recitations, 0),
+    'totalPins', COALESCE(_total_pins, 0),
+    'redeemedPins', COALESCE(_redeemed_pins, 0),
+    'totalTransactions', COALESCE(_total_transactions, 0),
+    'totalRevenue', COALESCE(_total_revenue, 0),
+    'totalUserBalance', COALESCE(_total_user_balance, 0),
+    'totalPointsBalance', COALESCE(_total_points_balance, 0)
   );
 END;
 $$;
