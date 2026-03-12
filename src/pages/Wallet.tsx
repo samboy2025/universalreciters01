@@ -259,6 +259,81 @@ const Wallet = () => {
     }
   };
 
+  const loadPaystackScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).PaystackPop) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://js.paystack.co/v2/inline.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Paystack"));
+      document.head.appendChild(script);
+    });
+  };
+
+  const handleFundViaPaystack = async () => {
+    const amount = parseInt(fundAmount);
+    if (!amount || amount < 500 || !user) {
+      toast({ title: "Minimum ₦500 required", variant: "destructive" });
+      return;
+    }
+    setFundingViaPaystack(true);
+    try {
+      await loadPaystackScript();
+      const { data: secretData } = await supabase.functions.invoke("get-paystack-key");
+      const publicKey = secretData?.publicKey;
+      if (!publicKey) {
+        toast({ title: "Payment setup error", description: "Could not load payment gateway.", variant: "destructive" });
+        setFundingViaPaystack(false);
+        return;
+      }
+
+      const paystack = new (window as any).PaystackPop();
+      paystack.newTransaction({
+        key: publicKey,
+        email: profile?.email || user.email,
+        amount: amount * 100,
+        currency: "NGN",
+        metadata: {
+          custom_fields: [
+            { display_name: "Purpose", variable_name: "purpose", value: "wallet_funding" },
+            { display_name: "User ID", variable_name: "user_id", value: user.id },
+          ],
+        },
+        onSuccess: async (transaction: any) => {
+          const { data: verifyData } = await supabase.functions.invoke("verify-paystack", {
+            body: { reference: transaction.reference },
+          });
+          if (verifyData?.success) {
+            await supabase.from("profiles").update({
+              money_balance: (profile?.money_balance || 0) + amount,
+            }).eq("id", user.id);
+            await supabase.from("transactions").insert({
+              user_id: user.id, type: "credit", category: "paystack_funding",
+              description: `Wallet funding via Paystack (${transaction.reference})`, amount, status: "completed",
+            });
+            await refreshProfile();
+            fetchTransactions();
+            setFundAmount("");
+            toast({ title: "Wallet funded!", description: `₦${amount.toLocaleString()} added to your balance` });
+          } else {
+            toast({ title: "Payment verification failed", variant: "destructive" });
+          }
+          setFundingViaPaystack(false);
+        },
+        onCancel: () => {
+          toast({ title: "Payment cancelled" });
+          setFundingViaPaystack(false);
+        },
+      });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setFundingViaPaystack(false);
+    }
+  };
+
   const copyReferralLink = () => {
     navigator.clipboard.writeText(
       `${window.location.origin}/register?ref=${profile?.referral_code || ""}`
