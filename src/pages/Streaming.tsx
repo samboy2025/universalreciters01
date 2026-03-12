@@ -295,12 +295,22 @@ const Streaming = () => {
                       <div className="absolute bottom-2 right-2 bg-foreground/80 text-background text-xs px-2 py-0.5 rounded">
                         {formatDuration(stream.duration || 0)}
                       </div>
+                      {!paidStreams.has(stream.id) && (
+                        <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded font-medium">
+                          ₦3 to watch
+                        </div>
+                      )}
                       <button
                         onClick={() => handleView(stream.id)}
+                        disabled={paying}
                         className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-glow">
-                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                          {paying ? (
+                            <Loader2 className="w-6 h-6 text-primary-foreground animate-spin" />
+                          ) : (
+                            <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                          )}
                         </div>
                       </button>
                     </>
