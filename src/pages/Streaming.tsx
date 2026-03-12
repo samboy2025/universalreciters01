@@ -47,8 +47,10 @@ const Streaming = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [likedStreams, setLikedStreams] = useState<Set<string>>(new Set());
+  const [paidStreams, setPaidStreams] = useState<Set<string>>(new Set());
+  const [paying, setPaying] = useState(false);
 
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
 
   const fetchStreams = async () => {
