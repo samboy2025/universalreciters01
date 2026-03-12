@@ -382,46 +382,52 @@ const Recite = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Recite</h1>
+          <p className="text-sm text-muted-foreground mt-1">Practice your recitation and get instant feedback</p>
+        </div>
+
         {/* Header Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Target className="w-6 h-6 text-primary" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Target className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Sessions</p>
-                <p className="text-2xl font-bold">{userRecitations.length}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Sessions</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">{userRecitations.length}</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                <Star className="w-6 h-6 text-success" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5 md:w-6 md:h-6 text-success" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Average Score</p>
-                <p className="text-2xl font-bold">{averageScore.toFixed(0)}%</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Average Score</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">{averageScore.toFixed(0)}%</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-warning" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-5 h-5 md:w-6 md:h-6 text-warning" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Points Earned</p>
-                <p className="text-2xl font-bold">+{profile?.points || 0}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Points Earned</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">+{profile?.points || 0}</p>
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* Recitation Area */}
-          <Card className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="w-5 h-5 text-primary" />

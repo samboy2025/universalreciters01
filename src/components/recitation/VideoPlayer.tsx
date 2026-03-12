@@ -191,27 +191,47 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
       <CardContent className="flex-1 flex flex-col gap-4">
         {/* Unlock Gate */}
         {selectedVideo && !isUnlocked(selectedVideo) && (
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center p-6 text-center border border-border">
-            <Lock className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-bold mb-2">{selectedVideo.title}</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Unlock this surah to watch the recitation and start practicing.
-            </p>
-            <Button
-              onClick={() => handleUnlockVideo(selectedVideo)}
-              disabled={isUnlocking}
-              className="gap-2"
-            >
-              {isUnlocking ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Unlock className="w-4 h-4" />
-              )}
-              Unlock for ₦{selectedVideo.unlock_fee}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">
-              Balance: ₦{Number(profile?.money_balance || 0).toLocaleString()}
-            </p>
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            {/* Thumbnail Background (blurred) */}
+            {selectedVideo.thumbnail_url ? (
+              <>
+                <img
+                  src={selectedVideo.thumbnail_url}
+                  alt={selectedVideo.title}
+                  className="absolute inset-0 w-full h-full object-cover blur-sm scale-110"
+                />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/20" />
+            )}
+            
+            {/* Lock Content */}
+            <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-background/90 flex items-center justify-center mb-4">
+                <Lock className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-white drop-shadow-lg">{selectedVideo.title}</h3>
+              <p className="text-sm text-white/90 mb-4 max-w-md drop-shadow">
+                Unlock this surah to watch the recitation and start practicing.
+              </p>
+              <Button
+                onClick={() => handleUnlockVideo(selectedVideo)}
+                disabled={isUnlocking}
+                className="gap-2 shadow-lg"
+                size="lg"
+              >
+                {isUnlocking ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Unlock className="w-4 h-4" />
+                )}
+                Unlock for ₦{selectedVideo.unlock_fee}
+              </Button>
+              <p className="text-xs text-white/80 mt-3 drop-shadow">
+                Balance: ₦{Number(profile?.money_balance || 0).toLocaleString()}
+              </p>
+            </div>
           </div>
         )}
 
@@ -236,18 +256,45 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
               )
             ) : (
               <>
-                <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                  <div className="text-center">
-                    <div className="font-arabic text-2xl text-primary mb-2">
-                      {selectedVideo.title}
-                    </div>
+                {/* Thumbnail Background */}
+                {selectedVideo.thumbnail_url ? (
+                  <img
+                    src={selectedVideo.thumbnail_url}
+                    alt={selectedVideo.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+                )}
+                
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                
+                {/* Title Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <h3 className="font-semibold text-lg drop-shadow-lg">
+                    {selectedVideo.title}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-2 text-sm">
+                    {selectedVideo.duration && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {Math.floor(selectedVideo.duration / 60)}:{(selectedVideo.duration % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      {selectedVideo.views.toLocaleString()} views
+                    </span>
                   </div>
                 </div>
+                
+                {/* Play Button */}
                 <button
                   onClick={() => setIsPlaying(true)}
-                  className="absolute inset-0 flex items-center justify-center hover:bg-foreground/5 transition-colors"
+                  className="absolute inset-0 flex items-center justify-center hover:bg-black/10 transition-colors group"
                 >
-                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-glow">
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
                     <Play className="w-8 h-8 text-primary-foreground ml-1" />
                   </div>
                 </button>

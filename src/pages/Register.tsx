@@ -227,81 +227,140 @@ const Register = () => {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-lg font-medium text-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern p-4 py-12">
-      <Card className="w-full max-w-md shadow-glow">
-        <CardHeader className="text-center">
-          <Link to="/" className="inline-block mb-4">
+      <Card className="w-full max-w-md shadow-glow animate-fade-in border-2">
+        <CardHeader className="text-center space-y-4 pb-6">
+          <Link to="/" className="inline-block mb-2 hover:scale-105 transition-transform">
             <Logo size="lg" className="mx-auto" />
           </Link>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Join Universal Reciters and start your journey</CardDescription>
+          <div>
+            <CardTitle className="text-3xl font-bold mb-2">Create Account</CardTitle>
+            <CardDescription className="text-base">Join Universal Reciters and start your journey</CardDescription>
+          </div>
 
           {/* Progress Steps */}
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-3 mt-6">
             {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                  s === step
-                    ? "bg-primary text-primary-foreground"
-                    : s < step
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {s < step ? <CheckCircle className="w-4 h-4" /> : s}
+              <div key={s} className="flex items-center">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                    s === step
+                      ? "bg-primary text-primary-foreground shadow-lg scale-110"
+                      : s < step
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {s < step ? <CheckCircle className="w-5 h-5" /> : s}
+                </div>
+                {s < 3 && (
+                  <div className={`w-12 h-1 mx-1 rounded-full transition-colors ${s < step ? "bg-primary" : "bg-muted"}`} />
+                )}
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Step {step} of 3: {step === 1 ? "Account Info" : step === 2 ? "Location" : "Payment"}
-          </p>
+          <div className="bg-muted/50 rounded-lg px-4 py-2 inline-block">
+            <p className="text-sm font-semibold text-foreground">
+              Step {step} of 3: {step === 1 ? "Account Info" : step === 2 ? "Location" : "Payment"}
+            </p>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {step === 1 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Enter your full name" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} required />
+                  <Label htmlFor="name" className="text-sm font-semibold">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="Enter your full name" 
+                    value={formData.name} 
+                    onChange={(e) => handleChange("name", e.target.value)} 
+                    required 
+                    className="h-12 text-base"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="your@email.com" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required />
+                  <Label htmlFor="email" className="text-sm font-semibold">Email Address</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    value={formData.email} 
+                    onChange={(e) => handleChange("email", e.target.value)} 
+                    required 
+                    className="h-12 text-base"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
                   <div className="relative">
-                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password (min 6 chars)" value={formData.password} onChange={(e) => handleChange("password", e.target.value)} required />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <Input 
+                      id="password" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Create a password (min 6 chars)" 
+                      value={formData.password} 
+                      onChange={(e) => handleChange("password", e.target.value)} 
+                      required 
+                      className="h-12 text-base pr-12"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)} 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input id="confirmPassword" type="password" placeholder="Confirm your password" value={formData.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} required />
+                  <Label htmlFor="confirmPassword" className="text-sm font-semibold">Confirm Password</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    placeholder="Confirm your password" 
+                    value={formData.confirmPassword} 
+                    onChange={(e) => handleChange("confirmPassword", e.target.value)} 
+                    required 
+                    className="h-12 text-base"
+                  />
                 </div>
-                <Button type="button" className="w-full" onClick={handleNext}>Continue</Button>
+                <Button 
+                  type="button" 
+                  className="w-full h-12 text-base font-semibold hover:scale-[1.02] transition-transform mt-6" 
+                  onClick={handleNext}
+                >
+                  Continue
+                </Button>
               </>
             )}
 
             {step === 2 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input id="country" value={formData.country} disabled className="bg-muted" />
+                  <Label htmlFor="country" className="text-sm font-semibold">Country</Label>
+                  <Input 
+                    id="country" 
+                    value={formData.country} 
+                    disabled 
+                    className="bg-muted h-12 text-base" 
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
+                  <Label htmlFor="state" className="text-sm font-semibold">State</Label>
                   <Select value={formData.state} onValueChange={(value) => handleChange("state", value)}>
-                    <SelectTrigger><SelectValue placeholder="Select your state" /></SelectTrigger>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder="Select your state" />
+                    </SelectTrigger>
                     <SelectContent>
                       {nigeriaStates.map((state) => (
                         <SelectItem key={state} value={state}>{state}</SelectItem>
@@ -310,96 +369,201 @@ const Register = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lga">Local Government Area (LGA)</Label>
-                  <Input id="lga" placeholder="Enter your LGA" value={formData.lga} onChange={(e) => handleChange("lga", e.target.value)} required />
+                  <Label htmlFor="lga" className="text-sm font-semibold">Local Government Area (LGA)</Label>
+                  <Input 
+                    id="lga" 
+                    placeholder="Enter your LGA" 
+                    value={formData.lga} 
+                    onChange={(e) => handleChange("lga", e.target.value)} 
+                    required 
+                    className="h-12 text-base"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ward">Ward</Label>
-                  <Input id="ward" placeholder="Enter your ward" value={formData.ward} onChange={(e) => handleChange("ward", e.target.value)} required />
+                  <Label htmlFor="ward" className="text-sm font-semibold">Ward</Label>
+                  <Input 
+                    id="ward" 
+                    placeholder="Enter your ward" 
+                    value={formData.ward} 
+                    onChange={(e) => handleChange("ward", e.target.value)} 
+                    required 
+                    className="h-12 text-base"
+                  />
                 </div>
-                <div className="flex gap-3">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
-                  <Button type="button" className="flex-1" onClick={handleNext}>Continue</Button>
+                <div className="flex gap-3 mt-6">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1 h-12 text-base font-semibold" 
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="button" 
+                    className="flex-1 h-12 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                    onClick={handleNext}
+                  >
+                    Continue
+                  </Button>
                 </div>
               </>
             )}
 
             {step === 3 && (
               <>
-                <div className="bg-muted rounded-lg p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Registration Fee</p>
-                  <p className="text-3xl font-bold text-foreground mt-1">₦{REGISTRATION_FEE.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-1">One-time payment to activate your account</p>
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-6 text-center border-2 border-primary/20">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Registration Fee</p>
+                  <p className="text-5xl font-bold text-foreground mt-3 mb-2">₦{REGISTRATION_FEE.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">One-time payment to activate your account</p>
                 </div>
 
                 {paymentCompleted ? (
-                  <div className="bg-success/10 rounded-lg p-4 flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-success flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-foreground">Payment Confirmed!</p>
-                      <p className="text-xs text-muted-foreground">Ref: {paymentReference}</p>
+                  <div className="bg-green-50 dark:bg-green-950/30 border-2 border-green-500/50 rounded-xl p-5 flex items-start gap-4 animate-fade-in">
+                    <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold text-foreground text-lg mb-1">Payment Confirmed!</p>
+                      <p className="text-sm text-muted-foreground">Reference: {paymentReference}</p>
                     </div>
                   </div>
                 ) : (
                   <>
                     {!paymentMethod && (
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground text-center">Choose payment method:</p>
-                        <Button type="button" className="w-full" onClick={() => setPaymentMethod("paystack")}>
-                          <CreditCard className="w-4 h-4 mr-2" />Pay with Paystack
+                      <div className="space-y-4">
+                        <p className="text-base font-semibold text-center text-foreground">Choose payment method:</p>
+                        <Button 
+                          type="button" 
+                          className="w-full h-14 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                          onClick={() => setPaymentMethod("paystack")}
+                        >
+                          Pay with Paystack
                         </Button>
-                        <Button type="button" variant="outline" className="w-full" onClick={() => setPaymentMethod("pin")}>
-                          <Key className="w-4 h-4 mr-2" />Use Redemption Code
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full h-14 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                          onClick={() => setPaymentMethod("pin")}
+                        >
+                          Use Redemption Code
                         </Button>
                       </div>
                     )}
 
                     {paymentMethod === "paystack" && (
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">You will be redirected to Paystack to complete payment of ₦{REGISTRATION_FEE.toLocaleString()}</p>
-                        <Button type="button" className="w-full" onClick={handlePaystackPayment} disabled={isLoading}>
-                          {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
-                          {isLoading ? "Processing..." : `Pay ₦${REGISTRATION_FEE.toLocaleString()}`}
+                      <div className="space-y-4 animate-fade-in">
+                        <div className="bg-muted/50 rounded-lg p-4 border">
+                          <p className="text-sm text-muted-foreground text-center">
+                            You will be redirected to Paystack to complete payment of <span className="font-bold text-foreground">₦{REGISTRATION_FEE.toLocaleString()}</span>
+                          </p>
+                        </div>
+                        <Button 
+                          type="button" 
+                          className="w-full h-14 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                          onClick={handlePaystackPayment} 
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            `Pay ₦${REGISTRATION_FEE.toLocaleString()}`
+                          )}
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => setPaymentMethod(null)}>
-                          ← Choose another method
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          className="w-full h-12 text-base" 
+                          onClick={() => setPaymentMethod(null)}
+                        >
+                          Choose another method
                         </Button>
                       </div>
                     )}
 
                     {paymentMethod === "pin" && (
-                      <div className="space-y-3">
+                      <div className="space-y-4 animate-fade-in">
                         <div className="space-y-2">
-                          <Label>Enter Redemption Code</Label>
-                          <Input placeholder="Enter your PIN code" value={redemptionPin} onChange={(e) => setRedemptionPin(e.target.value.toUpperCase())} />
+                          <Label className="text-sm font-semibold">Enter Redemption Code</Label>
+                          <Input 
+                            placeholder="Enter your PIN code" 
+                            value={redemptionPin} 
+                            onChange={(e) => setRedemptionPin(e.target.value.toUpperCase())} 
+                            className="h-12 text-base text-center font-mono tracking-wider"
+                          />
                         </div>
-                        <Button type="button" className="w-full" onClick={handlePinPayment} disabled={isLoading}>
-                          {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Key className="w-4 h-4 mr-2" />}
-                          {isLoading ? "Verifying..." : "Verify & Pay"}
+                        <Button 
+                          type="button" 
+                          className="w-full h-14 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                          onClick={handlePinPayment} 
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            "Verify & Pay"
+                          )}
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => setPaymentMethod(null)}>
-                          ← Choose another method
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          className="w-full h-12 text-base" 
+                          onClick={() => setPaymentMethod(null)}
+                        >
+                          Choose another method
                         </Button>
                       </div>
                     )}
                   </>
                 )}
 
-                <div className="flex gap-3">
-                  <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>Back</Button>
-                  <Button type="submit" className="flex-1 gap-2" disabled={isLoading || !paymentCompleted}>
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    Complete Registration
+                <div className="flex gap-3 mt-8">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1 h-12 text-base font-semibold" 
+                    onClick={() => setStep(2)}
+                    disabled={isLoading}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1 h-12 text-base font-semibold hover:scale-[1.02] transition-transform" 
+                    disabled={isLoading || !paymentCompleted}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Complete Registration"
+                    )}
                   </Button>
                 </div>
               </>
             )}
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+          <div className="relative mt-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Already have an account?</span>
+            </div>
           </div>
+
+          <Link to="/login" className="block mt-4">
+            <Button variant="outline" className="w-full h-12 text-base font-semibold hover:bg-muted transition-colors">
+              Sign In
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>
